@@ -16,7 +16,7 @@ class CallbackSdk
         File::deleteDirectory($targetModule);
 
         /** 后复制 */
-        $sdkModule = EASYSWOOLE_ROOT . '/vendor/alanchen365/callback-sdk-es3/src/Module/Callback/';
+        $sdkModule = EASYSWOOLE_ROOT . '/vendor/easy-produce/easyswoole3-callback/src/Module/Callback/';
         File::copyDirectory($sdkModule, $targetModule);
     }
 }
