@@ -11,10 +11,17 @@ class EnvUtil
      */
     public static function isRun(): bool
     {
-        try {
-            return EnvConst::CALLBACK_RUN;
-        } catch (\Throwable $throwable) {
+        if (isProduction()) {
             return true;
         }
+
+        $ref = new \ReflectionClass(EnvConst::class);
+        $callbackRun = $ref->getConstant('CALLBACK_RUN');
+
+        if ($callbackRun === true) {
+            return true;
+        }
+
+        return false;
     }
 }
