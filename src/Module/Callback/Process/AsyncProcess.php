@@ -10,6 +10,7 @@ use App\Module\Callback\Queue\TaskFailQueue;
 use App\Module\Callback\Queue\TaskInvalidQueue;
 use App\Module\Callback\Service\GatewayService;
 use App\Module\Callback\Service\TaskService;
+use App\Module\Callback\Util\EnvUtil;
 use EasySwoole\Component\Process\AbstractProcess;
 use EasySwoole\Component\Process\Config;
 use EasySwoole\Component\Timer;
@@ -34,6 +35,10 @@ class AsyncProcess extends AbstractProcess
 
     protected function run($arg)
     {
+        if (!EnvUtil::isRun()) {
+            return;
+        }
+
         while (true) {
             $needWait = false;
             try {
