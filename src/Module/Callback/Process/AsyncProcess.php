@@ -18,6 +18,7 @@ use EasySwoole\EasySwoole\Logger;
 use EasySwoole\EasySwoole\Task\TaskManager;
 use Es3\Trace;
 use Swoole\Process;
+use EasySwoole\ORM\DbManager;
 
 class AsyncProcess extends AbstractProcess
 {
@@ -46,7 +47,16 @@ class AsyncProcess extends AbstractProcess
                 $taskDao = new TaskDao();
 
                 /** 获取未推送的任务 */
-                $taskList = $taskDao->taskList(['INVALID'], true);
+                try {
+                    DbManager::getInstance()->startTransaction();
+
+                    $taskList = $taskDao->taskList(['INVALID'], true);
+
+                    DbManager::getInstance()->commit();
+                } catch (\Throwable $throwable) {
+                    DbManager::getInstance()->rollback();
+                }
+
                 if (!superEmpty($taskList)) {
                     foreach ($taskList as $key => $task) {
                         /** 异步处理 */
