@@ -186,7 +186,7 @@ class TaskService extends BaseCallbackService
                 } else {
                     $requestCode = $requestBody[$responseBusinessKeyCode] ?? null;
                 }
-                
+
                 /** 获取msg来判断请求是否发送成功 如果有 . 就分割 并且重获取该值 */
                 if (strstr($responseKeyMsg, '.')) {
                     $responseKeyMsgArr = explode('.', $responseKeyMsg);
@@ -248,6 +248,151 @@ class TaskService extends BaseCallbackService
         }
         /** 为防止有任务不断重复调用 间隔0.1秒调用 */
         usleep(1000000);
+    }
+
+    /**
+     * 批量执行任务
+     */
+    public function coroutine($task): array
+    {
+        $update = null;
+        $response = null;
+        try {
+            $taskId = $task['id'];
+
+            /** 更新请求日志 */
+            $update = ['request_count' => QueryBuilder::inc(1)];
+
+            /** 参数整理 */
+            $response = null;
+            $result = '';
+            $startTime = microtime(true);
+
+            try {
+                $url = $task['domain'] . $task['path'];
+
+                $method = $task['request_method'];
+                $headers = json_decode($task['request_header'], true);
+                $headers = superEmpty($headers) ? [] : $headers;
+                $params = $task['request_param'];
+
+                $curl = new Curl($url);
+                $curl->setTimeout(30);
+                $curl->setIs200(false);
+
+                /** 调用方式 */
+                if ('JSON' == $task['request_type']) {
+                    $curl->setHeader('Content-type', 'application/json;charset=utf-8');
+                }
+
+                /** 是否为跨环境调用 */
+                if (strtoupper(env()) != strtoupper($task['env'])) {
+                    throw new WaringException(7110, '环境存在差异');
+                }
+
+                switch (strtolower($method)) {
+
+                    case 'get':
+                        $response = $curl->get();
+                        break;
+                    case 'post':
+                        $response = $curl->post($params, $headers);
+                        break;
+                    case 'put':
+                        $response = $curl->put($params, $headers);
+                        break;
+                    case 'delete':
+                        $response = $curl->delete();
+                        break;
+                }
+            } catch (\Throwable $throwable) {
+                $result = "请求失败 code:" . $throwable->getCode() . ' message:' . $throwable->getMessage();
+            }
+
+            /** 判断请求成功还是失败 */
+            $duration = round(microtime(true) - $startTime, 5);
+            if ($response instanceof Response) {
+                $requestBody = json_decode($response->getBody(), true);
+
+                /** 获取执行结果 */
+                $responseBusinessKeyCode = $task['response_key_code'];
+                $responseKeyMsg = $task['response_key_msg'];
+
+                /** 获取code来判断请求是否发送成功 如果有 . 就分割 并且重获取该值 */
+                if (strstr($responseBusinessKeyCode, '.')) {
+                    $responseBusinessKeyCodeArr = explode('.', $responseBusinessKeyCode);
+                    $requestCode = $requestBody;
+                    foreach ((array)$responseBusinessKeyCodeArr as $key) {
+                        $requestCode = $requestCode[$key] ?? null;
+                    }
+
+                    if (is_array($requestCode)) {
+                        $requestCode = null;
+                    }
+                } else {
+                    $requestCode = $requestBody[$responseBusinessKeyCode] ?? null;
+                }
+
+                /** 获取msg来判断请求是否发送成功 如果有 . 就分割 并且重获取该值 */
+                if (strstr($responseKeyMsg, '.')) {
+                    $responseKeyMsgArr = explode('.', $responseKeyMsg);
+                    $result = $requestBody;
+                    foreach ((array)$responseKeyMsgArr as $key) {
+                        $result = $result[$key] ?? null;
+                    }
+                } else {
+                    $result = $requestBody[$responseKeyMsg] ?? null;
+                }
+
+                /** 如果返回值是不是字符串 就强制换算 */
+                $result = is_string($result) ? $result : json_encode($result);
+
+                /** 判断请求失败还是成功 */
+                $successCondition = $task['response_success_condition'];
+                $successValue = $task['response_success_value'];
+
+                # 响应成功条件 GT大于，GE大于或等于，NE是不等于，EQ是等于，LT小于，LE小于或等于
+                $isSuccess = false;
+                switch ($successCondition) {
+                    case 'GT':
+                        $isSuccess = $requestCode > $successValue ? true : false;;
+                        break;
+                    case 'GE':
+                        $isSuccess = $requestCode >= $successValue ? true : false;;
+                        break;
+                    case 'NE':
+                        $isSuccess = $requestCode != $successValue ? true : false;;
+                        break;
+                    case 'EQ':
+                        $isSuccess = $requestCode == $successValue ? true : false;;
+                        break;
+                    case 'LT':
+                        $isSuccess = $requestCode < $successValue ? true : false;;
+                        break;
+                    case 'LE':
+                        $isSuccess = $requestCode <= $successValue ? true : false;;
+                        break;
+                    default:
+                        $isSuccess = false;
+                }
+
+                $status = $isSuccess ? 'SUCCESS' : 'FAIL';
+//                    $responseParams = ;
+//                    $update['request_count'] = QueryBuilder::inc(1);
+                $update = ['request_count' => QueryBuilder::inc(1), 'result' => $result, 'status' => $status, 'response_body' => $response->getBody(), 'response_http_code' => $response->getStatusCode(), 'response_business_code' => $requestCode, 'request_duration' => $duration];
+            } else {
+                /** 如果curl没有发送成功 标记为error状态 */
+                $update = ['request_count' => QueryBuilder::inc(1), 'result' => $result, 'status' => 'ERROR', 'request_duration' => $duration];
+            }
+
+//                TaskModel::create()->update($responseParams, ['id' => $task['id']]);
+
+        } catch (ErrorException $e) {
+            Logger::getInstance()->log($e->getMessage(), Logger::LOG_LEVEL_ERROR, 'callback-process');
+            $update = ['request_count' => QueryBuilder::inc(1), 'result' => $e->getMessage(), 'status' => 'ERROR', 'request_duration' => $duration ?? -1];
+        }
+
+        return $update;
     }
 
     /**

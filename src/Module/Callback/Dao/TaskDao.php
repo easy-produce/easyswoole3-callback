@@ -19,17 +19,9 @@ class TaskDao extends BaseCallbackDao
      * @param bool $isAsync true 异步任务 false 同步任务
      * @return array
      */
-    public function taskList(array $status, bool $isAsync = null): array
+    public function taskList(array $status): array
     {
         $status = implode("','", $status);
-
-        /** 如果尚未指定同步和异步 就传递null 将所有任务查出来 */
-        if ($isAsync === null) {
-            $where = ' ';
-        } else {
-            $async = $isAsync === true ? 1 : 0;
-            $where = "AND task.`is_async` = {$async}";
-        }
 
         $env = strtoupper(env());
         $sql = "SELECT
@@ -60,7 +52,6 @@ class TaskDao extends BaseCallbackDao
             WHERE
                 task.`status` IN ( '$status' )
                 AND system.`env` = '{$env}'
-                {$where}
             ORDER BY task.request_count ASC";
 
         $list = $this->query($sql);
