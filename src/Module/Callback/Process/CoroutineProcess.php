@@ -102,7 +102,7 @@ class CoroutineProcess extends AbstractProcess
     public function sleep(bool $needWait)
     {
         if ($needWait) {
-            sleep(isDev() ? 1 : 3);
+            sleep(1);
         }
     }
 
