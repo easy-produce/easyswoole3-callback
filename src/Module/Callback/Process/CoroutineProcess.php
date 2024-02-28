@@ -54,7 +54,7 @@ class CoroutineProcess extends AbstractProcess
 
                 /** 获取未推送的任务 */
                 $taskList = $taskDao->taskList(['INVALID', 'ERROR', 'RUN', 'FAIL']) ?? [];
-                $chunkedTaskList = array_chunk($taskList, 20) ?? [];
+                $chunkedTaskList = array_chunk($taskList, 60) ?? [];
 
                 // 如果没有任务 休息一会儿
                 if (superEmpty($taskList)) {
@@ -81,7 +81,7 @@ class CoroutineProcess extends AbstractProcess
                                 $wait->done();
                             });
                         }
-                        $wait->wait(35);
+                        $wait->wait(-1);
 
                         foreach ($ret as $tId => $v) {
                             TaskModel::create()->update($v, ['id' => $tId]);
