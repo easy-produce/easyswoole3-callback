@@ -57,6 +57,11 @@ class CoroutineProcess extends AbstractProcess
                 $taskList = $taskDao->taskList(['INVALID', 'ERROR', 'RUN', 'FAIL']) ?? [];
                 $chunkedTaskList = array_chunk($taskList, 20) ?? [];
 
+                // 如果没有任务 休息一会儿
+                if(superEmpty($taskList)){
+                    $this->sleep($needWait);
+                }
+
                 /** 调度任务执行 */
                 foreach ($chunkedTaskList as $key => $tasks) {
 
@@ -95,7 +100,6 @@ class CoroutineProcess extends AbstractProcess
                 Logger::getInstance()->log($msg, Logger::LOG_LEVEL_ERROR, 'callback_task');
             }
 
-            $this->sleep($needWait);
         }
     }
 
