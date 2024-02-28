@@ -48,7 +48,6 @@ class CoroutineProcess extends AbstractProcess
          */
         while (true) {
 
-            $needWait = false;
             try {
                 /** 查询数据库，获得需要发送的消息 */
                 $taskDao = new TaskDao();
@@ -58,8 +57,8 @@ class CoroutineProcess extends AbstractProcess
                 $chunkedTaskList = array_chunk($taskList, 20) ?? [];
 
                 // 如果没有任务 休息一会儿
-                if(superEmpty($taskList)){
-                    $this->sleep($needWait);
+                if (superEmpty($taskList)) {
+                    $this->sleep();
                 }
 
                 /** 调度任务执行 */
@@ -84,30 +83,25 @@ class CoroutineProcess extends AbstractProcess
                         }
                         $wait->wait(35);
 
-                        // 批量更新
-                        $taskService = new TaskService();
-
                         foreach ($ret as $tId => $v) {
                             TaskModel::create()->update($v, ['id' => $tId]);
                         }
                     });
                 }
 
-                $needWait = true;
             } catch (\Throwable $throwable) {
                 $needWait = true;
                 $msg = "系统发生异常:" . $throwable->getCode() . ' ' . $throwable->getMessage();
                 Logger::getInstance()->log($msg, Logger::LOG_LEVEL_ERROR, 'callback_task');
+                $this->sleep();
             }
 
         }
     }
 
-    public function sleep(bool $needWait)
+    public function sleep()
     {
-        if ($needWait) {
-            sleep(1);
-        }
+        sleep(1);
     }
 
     protected function onPipeReadable(Process $process)

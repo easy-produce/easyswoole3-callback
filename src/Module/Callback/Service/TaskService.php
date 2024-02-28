@@ -258,7 +258,6 @@ class TaskService extends BaseCallbackService
         $update = null;
         $response = null;
         try {
-            $taskId = $task['id'];
 
             /** 更新请求日志 */
             $update = ['request_count' => QueryBuilder::inc(1)];
