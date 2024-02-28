@@ -37,9 +37,9 @@ class CoroutineProcess extends AbstractProcess
 
     protected function run($arg)
     {
-//        if (!EnvUtil::isRun()) {
-//            return;
-//        }
+        if (!EnvUtil::isRun()) {
+            return;
+        }
 
         Logger::getInstance()->console("回调服务开启");
 
