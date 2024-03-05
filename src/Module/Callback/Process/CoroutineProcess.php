@@ -78,17 +78,9 @@ class CoroutineProcess extends AbstractProcess
                                 $taskId = $task['id'];
                                 $taskService = new TaskService();
                                 $ret[$taskId] = $taskService->coroutine($task);
+                                TaskModel::create()->update($ret[$taskId], ['id' => $taskId]);
                                 $wait->done();
                             });
-                        }
-                        $wait->wait(-1);
-
-                        $wait = new \EasySwoole\Component\WaitGroup();
-
-                        foreach ($ret as $tId => $v) {
-                            $wait->add();
-                            TaskModel::create()->update($v, ['id' => $tId]);
-                            $wait->done();
                         }
                         $wait->wait(-1);
                     });

@@ -52,6 +52,7 @@ class TaskDao extends BaseCallbackDao
             WHERE
                 task.`status` IN ( '$status' )
                 AND system.`env` = '{$env}'
+                AND request_count <= 30
             ORDER BY task.request_count ASC";
 
         $list = $this->query($sql);
