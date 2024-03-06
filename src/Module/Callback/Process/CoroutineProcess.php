@@ -54,7 +54,7 @@ class CoroutineProcess extends AbstractProcess
 
                 /** 获取未推送的任务 */
                 $taskList = $taskDao->taskList(['INVALID', 'ERROR', 'RUN', 'FAIL']) ?? [];
-                $chunkedTaskList = array_chunk($taskList, 30) ?? [];
+                $chunkedTaskList = array_chunk($taskList, 10) ?? [];
 
                 // 如果没有任务 休息一会儿
                 if (superEmpty($taskList)) {
@@ -65,40 +65,36 @@ class CoroutineProcess extends AbstractProcess
                 foreach ($chunkedTaskList as $key => $tasks) {
 
                     /** 异步处理 */
-                    TaskManager::getInstance()->async(function () use ($tasks) {
+                    $ret = [];
+                    $wait = new \EasySwoole\Component\WaitGroup();
 
-                        $ret = [];
-                        $wait = new \EasySwoole\Component\WaitGroup();
+                    foreach ($tasks as $key => $task) {
 
-                        foreach ($tasks as $key => $task) {
+                        $wait->add();
+                        go(function () use ($wait, &$ret, $task) {
 
-                            $wait->add();
-                            go(function () use ($wait, &$ret, $task) {
-
-                                $taskId = $task['id'];
-                                $taskService = new TaskService();
-                                $ret[$taskId] = $taskService->coroutine($task);
-                                TaskModel::create()->update($ret[$taskId], ['id' => $taskId]);
-                                $wait->done();
-                            });
-                        }
-                        $wait->wait(-1);
-                    });
+                            $taskId = $task['id'];
+                            $taskService = new TaskService();
+                            $ret[$taskId] = $taskService->coroutine($task);
+                            TaskModel::create()->update($ret[$taskId], ['id' => $taskId]);
+                            $wait->done();
+                        });
+                    }
+                    $wait->wait(-1);
                 }
-
+                $this->sleep();
             } catch (\Throwable $throwable) {
                 $needWait = true;
                 $msg = "系统发生异常:" . $throwable->getCode() . ' ' . $throwable->getMessage();
                 Logger::getInstance()->log($msg, Logger::LOG_LEVEL_ERROR, 'callback_task');
                 $this->sleep();
             }
-
         }
     }
 
     public function sleep()
     {
-        sleep(1);
+        sleep(3);
     }
 
     protected function onPipeReadable(Process $process)
