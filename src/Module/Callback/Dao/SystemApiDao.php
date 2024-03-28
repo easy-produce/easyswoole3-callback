@@ -28,6 +28,7 @@ class SystemApiDao extends BaseCallbackDao
                 api.api_code,
                 api.api_name,
                 api.path,
+                ifnull(api.retry_count,30) retry_count, 
                 api.is_async,
                 api.request_method,
                 api.request_type

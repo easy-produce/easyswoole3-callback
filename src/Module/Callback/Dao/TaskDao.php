@@ -45,14 +45,21 @@ class TaskDao extends BaseCallbackDao
                 system.response_key_msg,
                 system.response_key_code,
                 system.response_success_condition,
-                system.`env` 
+                system.`env`,
+                task.`retry_count` 
             FROM
                 `callback_task` task
                 LEFT JOIN `callback_system` system ON task.system_id = system.id 
             WHERE
                 task.`status` IN ( '$status' )
                 AND system.`env` = '{$env}'
-                AND request_count <= 30
+                AND (
+                        (task.retry_count IS NULL OR task.retry_count = 0) AND task.request_count <= 30
+                        OR 
+                        task.retry_count = -1
+                        OR 
+                        (task.retry_count > 0 AND task.request_count <= task.retry_count)
+                    )
             ORDER BY task.request_count ASC";
 
         $list = $this->query($sql);
