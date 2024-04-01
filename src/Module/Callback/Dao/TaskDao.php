@@ -60,7 +60,7 @@ class TaskDao extends BaseCallbackDao
                         OR 
                         (task.retry_count > 0 AND task.request_count <= task.retry_count)
                     )
-            ORDER BY task.request_count ASC";
+            ORDER BY task.sort DESC , task.request_count ASC";
 
         $list = $this->query($sql);
         return $list;
