@@ -36,7 +36,7 @@ class SystemApiDao extends BaseCallbackDao
                 from `callback_system_api`  system_api
                 left join `callback_api` api
                 on system_api.`api_code` = api.`api_code`
-                left join `callback_system` system
+                left join `callback_system` `system`
                 on system_api.system_code = system.system_code
                 where api.delete_flg =0 and system.delete_flg = 0
               and api.api_code = '$apiCode' 

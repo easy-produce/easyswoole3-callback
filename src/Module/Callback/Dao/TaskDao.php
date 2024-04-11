@@ -40,19 +40,19 @@ class TaskDao extends BaseCallbackDao
                 #task.`env`,
                 system.system_name,
                 #system.request_header,
-                system.domain,
-                system.response_success_value,
-                system.response_key_msg,
-                system.response_key_code,
-                system.response_success_condition,
-                system.`env`,
+                `system`.domain,
+                `system`.response_success_value,
+                `system`.response_key_msg,
+                `system`.response_key_code,
+                `system`.response_success_condition,
+                `system`.`env`,
                 task.`retry_count` 
             FROM
                 `callback_task` task
-                LEFT JOIN `callback_system` system ON task.system_id = system.id 
+                LEFT JOIN `callback_system` `system` ON task.system_id = system.id 
             WHERE
                 task.`status` IN ( '$status' )
-                AND system.`env` = '{$env}'
+                AND `system`.`env` = '{$env}'
                 AND (
                         (task.retry_count IS NULL OR task.retry_count = 0) AND task.request_count <= 30
                         OR 
