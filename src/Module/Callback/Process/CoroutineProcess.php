@@ -17,6 +17,7 @@ use EasySwoole\Component\Process\Config;
 use EasySwoole\Component\Timer;
 use EasySwoole\EasySwoole\Logger;
 use EasySwoole\EasySwoole\Task\TaskManager;
+use EasySwoole\Log\LoggerInterface;
 use Es3\Trace;
 use Swoole\Process;
 use EasySwoole\ORM\DbManager;
@@ -86,7 +87,7 @@ class CoroutineProcess extends AbstractProcess
             } catch (\Throwable $throwable) {
                 $needWait = true;
                 $msg = "系统发生异常:" . $throwable->getCode() . ' ' . $throwable->getMessage();
-                Logger::getInstance()->log($msg, Logger::LOG_LEVEL_ERROR, 'callback_task');
+                Logger::getInstance()->log($msg, LoggerInterface::LOG_LEVEL_ERROR, 'callback_task');
                 $this->sleep();
             }
         }
@@ -120,6 +121,6 @@ class CoroutineProcess extends AbstractProcess
          * 该回调可选
          * 当该进程出现异常的时候，会执行该回调
          */
-        Logger::getInstance()->log($throwable->getMessage(), Logger::LOG_LEVEL_ERROR, 'callback-process');
+        Logger::getInstance()->log($throwable->getMessage(), LoggerInterface::LOG_LEVEL_ERROR, 'callback-process');
     }
 }

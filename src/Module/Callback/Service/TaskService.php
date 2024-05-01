@@ -11,6 +11,7 @@ use App\Module\Callback\Validate\TaskValidate;
 use EasySwoole\EasySwoole\Logger;
 use EasySwoole\EasySwoole\Task\TaskManager;
 use EasySwoole\HttpClient\Bean\Response;
+use EasySwoole\Log\LoggerInterface;
 use EasySwoole\Mysqli\QueryBuilder;
 use EasySwoole\ORM\Db\ClientInterface;
 use EasySwoole\ORM\DbManager;
@@ -245,7 +246,7 @@ class TaskService extends BaseCallbackService
             /** 解锁 */
             $lock->unlock();
         } catch (ErrorException $e) {
-            Logger::getInstance()->log($e->getMessage(), Logger::LOG_LEVEL_ERROR, 'callback-process');
+            Logger::getInstance()->log($e->getMessage(), LoggerInterface::LOG_LEVEL_ERROR, 'callback-process');
             $lock instanceof \swoole_lock ? $lock->unlock() : null;
         }
         /** 为防止有任务不断重复调用 间隔0.1秒调用 */
@@ -389,7 +390,7 @@ class TaskService extends BaseCallbackService
 //                TaskModel::create()->update($responseParams, ['id' => $task['id']]);
 
         } catch (ErrorException $e) {
-            Logger::getInstance()->log($e->getMessage(), Logger::LOG_LEVEL_ERROR, 'callback-process');
+            Logger::getInstance()->log($e->getMessage(), LoggerInterface::LOG_LEVEL_ERROR, 'callback-process');
             $update = ['request_count' => QueryBuilder::inc(1), 'result' => $e->getMessage(), 'status' => 'ERROR', 'request_duration' => $duration ?? -1];
         }
 
