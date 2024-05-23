@@ -247,7 +247,7 @@ class TaskService extends BaseCallbackService
             $lock->unlock();
         } catch (ErrorException $e) {
             Logger::getInstance()->log($e->getMessage(), LoggerInterface::LOG_LEVEL_ERROR, 'callback-process');
-            $lock instanceof \swoole_lock ? $lock->unlock() : null;
+            method_exists($lock, 'unlock') ? $lock->unlock() :  null;
         }
         /** 为防止有任务不断重复调用 间隔0.1秒调用 */
         usleep(1000000);
