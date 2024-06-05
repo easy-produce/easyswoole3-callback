@@ -71,6 +71,7 @@ class TaskService extends BaseCallbackService
                 'system_id' => $push['system_id'],
                 'domain' => $push['domain'],
                 'path' => $push['path'],
+                'level' => $push['level'],
                 'is_async' => $push['is_async'],
                 'retry_count' => $push['retry_count'],
                 'sort' => $push['sort'],
