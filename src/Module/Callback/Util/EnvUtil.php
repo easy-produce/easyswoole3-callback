@@ -24,4 +24,9 @@ class EnvUtil
 
         return false;
     }
+
+    public static function ss()
+    {
+
+    }
 }

@@ -12,17 +12,17 @@ use App\Module\Callback\Queue\TaskInvalidQueue;
 use App\Module\Callback\Service\GatewayService;
 use App\Module\Callback\Service\TaskService;
 use App\Module\Callback\Util\EnvUtil;
+use App\Module\Callback\Util\TaskUtil;
 use EasySwoole\Component\Process\AbstractProcess;
 use EasySwoole\Component\Process\Config;
 use EasySwoole\Component\Timer;
 use EasySwoole\EasySwoole\Logger;
 use EasySwoole\EasySwoole\Task\TaskManager;
-use EasySwoole\Log\LoggerInterface;
 use Es3\Trace;
 use Swoole\Process;
 use EasySwoole\ORM\DbManager;
 
-class CoroutineProcess extends AbstractProcess
+class FailProcess extends AbstractProcess
 {
     public static function getConf(): Config
     {
@@ -38,56 +38,32 @@ class CoroutineProcess extends AbstractProcess
 
     protected function run($arg)
     {
-        if (!EnvUtil::isRun()) {
-//            return;
-        }
-
         Logger::getInstance()->console("回调服务开启");
 
-        /**
-         * 3秒扫描一次
-         */
         while (true) {
 
             try {
-                /** 查询数据库，获得需要发送的消息 */
-                $taskDao = new TaskDao();
+                /** 获取任务 */
+                $status = ['ERROR', 'FAIL'];
+                $level = 'FAIL';
+                $retryCount = -1;
 
-                /** 获取未推送的任务 */
-                $taskList = $taskDao->taskList(['INVALID', 'ERROR', 'RUN', 'FAIL']) ?? [];
-                $chunkedTaskList = array_chunk($taskList, 10) ?? [];
+                $taskList = TaskUtil::taskListFail($status);
 
-                // 如果没有任务 休息一会儿
+                /** 如果没有任务 休息一会儿 */
                 if (superEmpty($taskList)) {
                     $this->sleep();
                 }
 
                 /** 调度任务执行 */
-                foreach ($chunkedTaskList as $key => $tasks) {
+                TaskUtil::run($taskList, $level);
 
-                    /** 异步处理 */
-                    $ret = [];
-                    $wait = new \EasySwoole\Component\WaitGroup();
-
-                    foreach ($tasks as $key => $task) {
-
-                        $wait->add();
-                        go(function () use ($wait, &$ret, $task) {
-
-                            $taskId = $task['id'];
-                            $taskService = new TaskService();
-                            $ret[$taskId] = $taskService->coroutine($task);
-                            TaskModel::create()->update($ret[$taskId], ['id' => $taskId]);
-                            $wait->done();
-                        });
-                    }
-                    $wait->wait(-1);
-                }
+                /** 一轮下来后休息一会儿 */
                 $this->sleep();
             } catch (\Throwable $throwable) {
                 $needWait = true;
                 $msg = "系统发生异常:" . $throwable->getCode() . ' ' . $throwable->getMessage();
-                Logger::getInstance()->log($msg, LoggerInterface::LOG_LEVEL_ERROR, 'callback_task');
+                Logger::getInstance()->log($msg, Logger::LOG_LEVEL_ERROR, 'callback_task');
                 $this->sleep();
             }
         }
@@ -121,6 +97,6 @@ class CoroutineProcess extends AbstractProcess
          * 该回调可选
          * 当该进程出现异常的时候，会执行该回调
          */
-        Logger::getInstance()->log($throwable->getMessage(), LoggerInterface::LOG_LEVEL_ERROR, 'callback-process');
+        Logger::getInstance()->log($throwable->getMessage(), Logger::LOG_LEVEL_ERROR, 'callback-process');
     }
 }
